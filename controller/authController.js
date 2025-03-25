@@ -4,32 +4,44 @@ import userModel from "../model/userModel.js";
 import transporter from "../config/nodemailer.js";
 
 export const register = async (req, res) => {
-  const { name, email, password } = req.body;
+  const { name, email, password, phoneNumber } = req.body;
 
-  if (!name || !email || !password) {
-    return res.json({
+  if (!name || !email || !password || !phoneNumber) {
+    return res.status(400).json({
       success: false,
-      message: "Missing Req Fuils",
+      message: "Missing required fields",
     });
   }
 
   try {
-    const exitingUser = await userModel.findOne({ email });
+    const existingUser = await userModel.findOne({ email });
 
-    if (exitingUser) {
-      return res.json({
+    if (existingUser) {
+      return res.status(400).json({
         success: false,
-        message: "user already exits",
+        message: "User already exists",
       });
     }
 
     const hashPassword = await bcrypt.hash(password, 10);
 
-    const user = new userModel({ name, email, password: hashPassword });
+    const newUser = new userModel({
+      name,
+      email,
+      password: hashPassword,
+      phoneNumber,
+    });
 
-    await user.save();
+    const savedUser = await newUser.save();
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+    if (!savedUser) {
+      return res.status(500).json({
+        success: false,
+        message: "Failed to create user",
+      });
+    }
+
+    const token = jwt.sign({ id: savedUser._id }, process.env.JWT_SECRET, {
       expiresIn: "7d",
     });
 
@@ -37,30 +49,31 @@ export const register = async (req, res) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
-      maxAge: 7 * 24 * 60 * 60,
+      maxAge: 7 * 24 * 60 * 60 * 1000, // Fixed milliseconds
     });
 
-    // sending mail
+    // Sending mail
     const mailOptions = {
-      from: process.env.SENDER_EMail,
+      from: process.env.SENDER_EMAIL,
       to: email,
-      subject: "Welcome to meets web",
-      text: `Welcome to meets web. your account is created width this email ${email}`,
+      subject: "Welcome to Meets Web",
+      text: `Welcome to Meets Web. Your account has been created with this email: ${email}`,
     };
 
     await transporter.sendMail(mailOptions);
 
-    return res.json({
+    return res.status(201).json({
       success: true,
+      data: savedUser.toObject(),
     });
   } catch (error) {
-    res.json({
+    return res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Internal Server Error",
+      error: error.message,
     });
   }
 };
-
 export const login = async (req, res) => {
   const { email, password } = req.body;
 
@@ -103,6 +116,7 @@ export const login = async (req, res) => {
 
     return res.json({
       success: true,
+      data: user,
     });
   } catch (error) {
     res.json({
