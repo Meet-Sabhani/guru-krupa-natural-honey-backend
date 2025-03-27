@@ -19,7 +19,10 @@ const startServer = async () => {
     app.use(cookieParser());
     app.use(
       cors({
-        origin: process.env.CLIENT_URL || "http://localhost:3000", // ✅ Specify allowed frontend origin
+        origin: [
+          "http://guru-krupa-natural-honey.vercel.app", // ✅ Removed trailing slash
+          "http://localhost:3000",
+        ],
         credentials: true,
       })
     );
