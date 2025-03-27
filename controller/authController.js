@@ -3,54 +3,51 @@ import jwt from "jsonwebtoken";
 import userModel from "../model/userModel.js";
 import transporter from "../config/nodemailer.js";
 
+const adminLoginCredentials = {
+  email: "admin@mailinator.com",
+  password: "Admin@123",
+  id: 1,
+};
+
+const generateToken = (user) => {
+  return jwt.sign(user, process.env.JWT_SECRET, {
+    expiresIn: "7d",
+  });
+};
+
 export const register = async (req, res) => {
   const { name, email, password, phoneNumber } = req.body;
 
   if (!name || !email || !password || !phoneNumber) {
-    return res.status(400).json({
-      success: false,
-      message: "Missing required fields",
-    });
+    return res
+      .status(400)
+      .json({ success: false, message: "Missing required fields" });
   }
 
   try {
     const existingUser = await userModel.findOne({ email });
-
     if (existingUser) {
-      return res.status(400).json({
-        success: false,
-        message: "User already exists",
-      });
+      return res
+        .status(400)
+        .json({ success: false, message: "User already exists" });
     }
 
     const hashPassword = await bcrypt.hash(password, 10);
-
     const newUser = new userModel({
       name,
       email,
       password: hashPassword,
       phoneNumber,
     });
-
     const savedUser = await newUser.save();
 
     if (!savedUser) {
-      return res.status(500).json({
-        success: false,
-        message: "Failed to create user",
-      });
+      return res
+        .status(500)
+        .json({ success: false, message: "Failed to create user" });
     }
 
-    const token = jwt.sign({ id: savedUser._id }, process.env.JWT_SECRET, {
-      expiresIn: "7d",
-    });
-
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // Fixed milliseconds
-    });
+    const token = generateToken(savedUser);
 
     // Sending mail
     const mailOptions = {
@@ -62,10 +59,9 @@ export const register = async (req, res) => {
 
     await transporter.sendMail(mailOptions);
 
-    return res.status(201).json({
-      success: true,
-      data: savedUser.toObject(),
-    });
+    return res
+      .status(201)
+      .json({ success: true, token, data: savedUser.toObject() });
   } catch (error) {
     return res.status(500).json({
       success: false,
@@ -74,75 +70,67 @@ export const register = async (req, res) => {
     });
   }
 };
+
 export const login = async (req, res) => {
   const { email, password } = req.body;
 
-  if (!password || !email) {
-    return res.json({
-      success: false,
-      message: "Missing Req Fuils",
-    });
+  if (!email || !password) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Missing required fields" });
   }
 
   try {
     const user = await userModel.findOne({ email });
-
     if (!user) {
-      return res.json({
-        success: false,
-        message: "invalid credential",
-      });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid credentials" });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
-
     if (!isMatch) {
-      return res.json({
-        success: false,
-        message: "PassWord Not Match",
-      });
+      return res
+        .status(400)
+        .json({ success: false, message: "Incorrect password" });
     }
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "7d",
-    });
+    const token = generateToken(user);
 
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
-      maxAge: 7 * 24 * 60 * 60,
-    });
-
-    return res.json({
-      success: true,
-      data: user,
-    });
+    return res.json({ success: true, token, data: user });
   } catch (error) {
-    res.json({
-      success: false,
-      message: error.message,
-    });
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
 
 export const logout = async (req, res) => {
-  try {
-    res.clearCookie("token", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
-    });
+  return res.json({
+    success: true,
+    message: "Logged out successfully",
+  });
+};
 
+export const adminLogin = async (req, res) => {
+  const { email, password } = req.body;
+
+  if (
+    email !== adminLoginCredentials.email ||
+    password !== adminLoginCredentials.password
+  ) {
+    return res
+      .status(402)
+      .json({ success: false, message: "Invalid admin credentials" });
+  }
+
+  try {
+    const token = generateToken(adminLoginCredentials);
     return res.json({
       success: true,
-      message: "logout successfully",
+      token,
+      message: "Admin logged in successfully",
     });
   } catch (error) {
-    res.json({
-      success: false,
-      message: error.message,
-    });
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
 

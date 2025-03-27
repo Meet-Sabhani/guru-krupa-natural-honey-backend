@@ -1,26 +1,24 @@
 import express from "express";
 import cors from "cors";
 import "dotenv/config";
-import cookieParser from "cookie-parser";
 import connectDB from "./config/mongodb.js";
 import authRoutes from "./routes/authRoutes.js";
+import protectedRoutes from "./routes/protectedRoutes.js"; // Secure routes
 
 const app = express();
-const PORT = process.env.PORT || 4001; // ✅ Fixed variable name
+const PORT = process.env.PORT || 4001;
 
-// Connect to MongoDB before starting the server
 const startServer = async () => {
   try {
-    await connectDB(); // ✅ Ensure DB connection before starting server
+    await connectDB();
     console.log("🚀 MongoDB connected successfully!");
 
     // Middleware
-    app.use(express.json());
-    app.use(cookieParser());
+    app.use(express.json()); // ✅ Ensure JSON parsing
     app.use(
       cors({
         origin: [
-          "http://guru-krupa-natural-honey.vercel.app", // ✅ Removed trailing slash
+          "http://guru-krupa-natural-honey.vercel.app",
           "http://localhost:3000",
         ],
         credentials: true,
@@ -30,14 +28,32 @@ const startServer = async () => {
     // API Endpoints
     app.get("/", (req, res) => res.send("🔥 Server started successfully!"));
     app.use("/api/auth", authRoutes);
+    app.use("/api/protected", protectedRoutes); // Secure API routes
+
+    // Handle invalid API routes
+    app.use((req, res) => {
+      res.status(404).json({
+        success: false,
+        message: "Invalid API call. This route does not exist.",
+      });
+    });
+
+    // Global Error Handling Middleware
+    app.use((err, req, res, next) => {
+      console.error("❌ Global Error:", err.message);
+      res.status(err.status || 500).json({
+        success: false,
+        message: err.message || "Internal Server Error",
+      });
+    });
 
     // Start server
     app.listen(PORT, () => {
-      console.log(`🚀 ~ Server running on port: ${PORT}`);
+      console.log(`🚀 Server running on port: ${PORT}`);
     });
   } catch (error) {
     console.error("❌ Error starting server:", error.message);
-    process.exit(1); // Exit on failure
+    process.exit(1);
   }
 };
 
