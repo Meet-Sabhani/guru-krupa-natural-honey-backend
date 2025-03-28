@@ -169,6 +169,7 @@ export const adminLogin = async (req, res) => {
     return res.json({
       success: true,
       token,
+      data: adminLoginCredentials,
       message: "Admin logged in successfully",
     });
   } catch (error) {
