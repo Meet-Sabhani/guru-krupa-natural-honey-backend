@@ -110,6 +110,48 @@ export const logout = async (req, res) => {
   });
 };
 
+export const getUsers = async (req, res) => {
+  try {
+    const { search = "", pageSize = 10, page = 1 } = req.body;
+
+    const isNumericSearch = !isNaN(search) && search.trim() !== "";
+
+    const query = search
+      ? {
+          $or: [
+            { name: { $regex: search, $options: "i" } }, // Case-insensitive search for name
+            { email: { $regex: search, $options: "i" } }, // Case-insensitive search for email
+            ...(isNumericSearch ? [{ phoneNumber: Number(search) }] : []), // Exact match for phone number
+          ],
+        }
+      : {};
+
+    const users = await userModel
+      .find(query, "-password")
+      .skip((Number(page) - 1) * Number(pageSize))
+      .limit(Number(pageSize));
+
+    const totalUsers = await userModel.countDocuments(query);
+
+    return res.json({
+      success: true,
+      data: users,
+      pagination: {
+        total: totalUsers,
+        page: Number(page),
+        hasMore: Number(page) * Number(pageSize) < totalUsers,
+        pageSize: Number(pageSize),
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      error: error.message,
+    });
+  }
+};
+
 export const adminLogin = async (req, res) => {
   const { email, password } = req.body;
 
