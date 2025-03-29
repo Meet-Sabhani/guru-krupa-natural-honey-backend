@@ -15,13 +15,17 @@ const startServer = async () => {
 
     // Middleware
     app.use(express.json()); // ✅ Ensure JSON parsing
+
+    // cors
     app.use(
       cors({
         origin: [
-          "https://guru-krupa-natural-honey.vercel.app/",
+          "https://guru-krupa-natural-honey.vercel.app",
           "http://localhost:3000",
         ],
-        credentials: true,
+        credentials: true, // ✅ Important for cookies/sessions
+        methods: ["GET", "POST", "PUT", "DELETE"],
+        allowedHeaders: ["Content-Type", "Authorization"],
       })
     );
 
