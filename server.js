@@ -24,10 +24,11 @@ const startServer = async () => {
           "http://localhost:3000",
         ],
         credentials: true, // ✅ Important for cookies/sessions
-        methods: ["GET", "POST", "PUT", "DELETE"],
-        allowedHeaders: ["Content-Type", "Authorization"],
       })
     );
+
+    // methods: ["GET", "POST", "PUT", "DELETE"],
+    // allowedHeaders: ["Content-Type", "Authorization"],
 
     // API Endpoints
     app.get("/", (req, res) => res.send("🔥 Server started successfully!"));
