@@ -1,7 +1,7 @@
 import express from "express";
 import { authenticate } from "../middleware/authMiddleware.js";
 import { protectedRouteHandler } from "../controller/protectedRouteHandler.js";
-import { getUsers } from "../controller/authController.js";
+import { getUserDetails, getUsers } from "../controller/authController.js";
 import {
   createProduct,
   getAllProducts,
@@ -28,5 +28,7 @@ protectedRoutes.delete(
 
 // product details api
 protectedRoutes.get("/product-details/:id", authenticate, getProductById);
+
+protectedRoutes.get("/user-details/:userId", authenticate, getUserDetails);
 
 export default protectedRoutes;

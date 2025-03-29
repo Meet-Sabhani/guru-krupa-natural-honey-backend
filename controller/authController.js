@@ -7,6 +7,7 @@ const adminLoginCredentials = {
   email: "admin@mailinator.com",
   password: "Admin@123",
   id: 1,
+  role: "admin",
 };
 
 const generateToken = (user) => {
@@ -16,38 +17,47 @@ const generateToken = (user) => {
 };
 
 export const register = async (req, res) => {
-  const { name, email, password, phoneNumber } = req.body;
-
-  if (!name || !email || !password || !phoneNumber) {
-    return res
-      .status(400)
-      .json({ success: false, message: "Missing required fields" });
-  }
-
   try {
-    const existingUser = await userModel.findOne({ email });
+    const { name, email, password, phoneNumber } = req.body;
+
+    if (!name || !email || !password || !phoneNumber) {
+      return res.json({
+        success: false,
+        message: "Missing required fields",
+      });
+    }
+
+    // Normalize email (trim whitespace, convert to lowercase)
+    const normalizedEmail = email.trim().toLowerCase();
+
+    // Check if user already exists
+    const existingUser = await userModel.findOne({ email: normalizedEmail });
+
     if (existingUser) {
-      return res
-        .status(400)
-        .json({ success: false, message: "User already exists" });
+      return res.json({
+        success: false,
+        message: "User already exists",
+      });
     }
 
     const hashPassword = await bcrypt.hash(password, 10);
+
     const newUser = new userModel({
       name,
-      email,
+      email: normalizedEmail,
       password: hashPassword,
       phoneNumber,
     });
-    const savedUser = await newUser.save();
 
+    const savedUser = await newUser.save();
     if (!savedUser) {
-      return res
-        .status(500)
-        .json({ success: false, message: "Failed to create user" });
+      return res.json({
+        success: false,
+        message: "Failed to Register",
+      });
     }
 
-    const token = generateToken(savedUser);
+    const token = generateToken(savedUser.toObject()); // Ensure plain object
 
     // Sending mail
     const mailOptions = {
@@ -59,11 +69,13 @@ export const register = async (req, res) => {
 
     await transporter.sendMail(mailOptions);
 
-    return res
-      .status(201)
-      .json({ success: true, token, data: savedUser.toObject() });
+    return res.json({
+      success: true,
+      token,
+      data: savedUser.toObject(), // Ensure plain object response
+    });
   } catch (error) {
-    return res.status(500).json({
+    return res.json({
       success: false,
       message: "Internal Server Error",
       error: error.message,
@@ -72,34 +84,80 @@ export const register = async (req, res) => {
 };
 
 export const login = async (req, res) => {
-  const { email, password } = req.body;
-
-  if (!email || !password) {
-    return res
-      .status(400)
-      .json({ success: false, message: "Missing required fields" });
-  }
-
   try {
-    const user = await userModel.findOne({ email });
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.json({
+        success: false,
+        message: "Missing required fields",
+      });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await userModel.findOne({ email: normalizedEmail });
+
     if (!user) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Invalid credentials" });
+      return res.json({
+        success: false,
+        message: "Invalid credentials",
+      });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Incorrect password" });
+      return res.json({
+        success: false,
+        message: "Incorrect password",
+      });
     }
 
-    const token = generateToken(user);
+    const token = generateToken(user.toObject()); // ✅ Convert to plain object
 
-    return res.json({ success: true, token, data: user });
+    return res.json({
+      success: true,
+      token,
+      data: user.toObject(), // ✅ Convert to plain object before sending response
+    });
   } catch (error) {
-    return res.status(500).json({ success: false, message: error.message });
+    return res.json({
+      success: false,
+      message: "Internal Server Error",
+      error: error.message,
+    });
+  }
+};
+
+export const getUserDetails = async (req, res) => {
+  try {
+    const { userId } = req.params; // Get userId from request params
+
+    if (!userId) {
+      return res.json({
+        success: false,
+        message: "userId is required",
+      });
+    }
+
+    const user = await userModel.findById(userId).lean(); // Use lean() for optimization
+
+    if (!user) {
+      return res.json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: user,
+    });
+  } catch (error) {
+    return res.json({
+      success: false,
+      message: "Internal Server Error",
+      error: error.message,
+    });
   }
 };
 
@@ -144,7 +202,7 @@ export const getUsers = async (req, res) => {
       },
     });
   } catch (error) {
-    return res.status(500).json({
+    return res.json({
       success: false,
       message: "Internal Server Error",
       error: error.message,
@@ -159,9 +217,7 @@ export const adminLogin = async (req, res) => {
     email !== adminLoginCredentials.email ||
     password !== adminLoginCredentials.password
   ) {
-    return res
-      .status(402)
-      .json({ success: false, message: "Invalid admin credentials" });
+    return res.json({ success: false, message: "Invalid admin credentials" });
   }
 
   try {
@@ -173,7 +229,7 @@ export const adminLogin = async (req, res) => {
       message: "Admin logged in successfully",
     });
   } catch (error) {
-    return res.status(500).json({ success: false, message: error.message });
+    return res.json({ success: false, message: error.message });
   }
 };
 
@@ -222,7 +278,7 @@ export const sendVerifyOTP = async (req, res) => {
 export const verifyEmail = async (req, res) => {
   const { userId, otp } = req.body;
 
-  if (!userId || otp) {
+  if (!userId || !otp) {
     return res.json({
       success: false,
       message: "Missing Details",

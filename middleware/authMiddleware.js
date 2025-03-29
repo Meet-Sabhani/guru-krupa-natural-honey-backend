@@ -8,6 +8,7 @@ export const authenticate = async (req, res, next) => {
     return res.status(401).json({
       success: false,
       message: "Unauthorized: No token provided",
+      unauthorized: true,
     });
   }
 
@@ -21,12 +22,13 @@ export const authenticate = async (req, res, next) => {
       return next(); // ✅ Stops execution here for admin
     }
 
-    const user = await userModel.findById(decoded.id).select("-password");
+    const user = await userModel.findById(decoded._id).select("-password");
 
     if (!user) {
       return res.status(401).json({
         success: false,
         message: "Unauthorized: User not found",
+        unauthorized: true,
       });
     }
 
@@ -36,6 +38,7 @@ export const authenticate = async (req, res, next) => {
     return res.status(401).json({
       success: false,
       message: "Unauthorized: Invalid or expired token",
+      unauthorized: true,
     });
   }
 };
