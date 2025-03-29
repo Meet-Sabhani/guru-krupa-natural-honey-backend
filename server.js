@@ -18,7 +18,7 @@ const startServer = async () => {
     app.use(
       cors({
         origin: [
-          "http://guru-krupa-natural-honey.vercel.app",
+          "https://guru-krupa-natural-honey.vercel.app/",
           "http://localhost:3000",
         ],
         credentials: true,
