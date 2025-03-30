@@ -8,6 +8,8 @@ import {
   getProductById,
   updateProduct,
   deleteProduct,
+  productStatusChange,
+  getActiveProducts,
 } from "../controller/productController.js";
 
 const protectedRoutes = express.Router();
@@ -25,6 +27,14 @@ protectedRoutes.delete(
   authenticate,
   deleteProduct
 );
+protectedRoutes.post(
+  "/admin/product-status-change/:id",
+  authenticate,
+  productStatusChange
+);
+
+// for home page & user products list & removed auth
+protectedRoutes.post("/user/active-products", getActiveProducts);
 
 // product details api
 protectedRoutes.get("/product-details/:id", authenticate, getProductById);

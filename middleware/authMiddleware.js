@@ -17,11 +17,6 @@ export const authenticate = async (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // ✅ If admin (ID === 1), skip authentication & continue
-    if (decoded.id === 1) {
-      return next(); // ✅ Stops execution here for admin
-    }
-
     const user = await userModel.findById(decoded._id).select("-password");
 
     if (!user) {

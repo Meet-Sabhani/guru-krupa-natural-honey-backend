@@ -128,6 +128,119 @@ export const login = async (req, res) => {
   }
 };
 
+export const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.json({
+        success: false,
+        message: "Missing email fields",
+      });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await userModel.findOne({ email: normalizedEmail });
+
+    if (!user) {
+      return res.json({
+        success: false,
+        message: "User Not Exit",
+      });
+    }
+
+    const OTP = String(Math.floor(100000 + Math.random() * 900000));
+
+    user.verifyOtp = OTP;
+    user.verifyOtpExpireAT = Date.now() + 2 * 60 * 1000;
+
+    await user.save();
+
+    const mailOptions = {
+      from: process.env.SENDER_EMAIL,
+      to: user.email,
+      subject: "Account Verification OTP",
+      text: `Your OTP is ${OTP}. Verify your account using this OTP.`,
+    };
+
+    try {
+      await transporter.sendMail(mailOptions);
+      return res.json({
+        success: true,
+        message: "Verification OTP sent to your email",
+      });
+    } catch (emailError) {
+      return res.json({
+        success: false,
+        message: "Failed to send email. Please try again.",
+        error: emailError.message,
+      });
+    }
+  } catch (error) {
+    return res.json({
+      success: false,
+      message: "Internal Server Error",
+      error: error.message,
+    });
+  }
+};
+
+export const changePassword = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.json({
+        success: false,
+        message: "Missing email fields",
+      });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await userModel.findOne({ email: normalizedEmail });
+
+    if (!user) {
+      return res.json({
+        success: false,
+        message: "User Not Exit",
+      });
+    }
+
+    const hashPassword = await bcrypt.hash(password, 10);
+
+    user.password = hashPassword;
+
+    await user.save();
+
+    const mailOptions = {
+      from: process.env.SENDER_EMAIL,
+      to: user.email,
+      subject: "Password Change",
+      text: `Your password has been changes`,
+    };
+
+    try {
+      await transporter.sendMail(mailOptions);
+      return res.json({
+        success: true,
+        message: "Pass word changed",
+      });
+    } catch (emailError) {
+      return res.json({
+        success: true,
+        message: "Pass word changed",
+        emailError: true,
+      });
+    }
+  } catch (error) {
+    return res.json({
+      success: false,
+      message: "Internal Server Error",
+      error: error.message,
+    });
+  }
+};
+
 export const getUserDetails = async (req, res) => {
   try {
     const { userId } = req.params; // Get userId from request params
@@ -250,7 +363,7 @@ export const sendVerifyOTP = async (req, res) => {
     const OTP = String(Math.floor(100000 + Math.random() * 900000));
 
     user.verifyOtp = OTP;
-    user.verifyOtpExpireAT = Date.now() + 24 * 60 * 60 * 1000;
+    user.verifyOtpExpireAT = Date.now() + 2 * 60 * 1000;
 
     await user.save();
 
@@ -276,17 +389,16 @@ export const sendVerifyOTP = async (req, res) => {
 };
 
 export const verifyEmail = async (req, res) => {
-  const { userId, otp } = req.body;
+  const { userId, otp, email } = req.body;
 
-  if (!userId || !otp) {
-    return res.json({
-      success: false,
-      message: "Missing Details",
-    });
+  if (!otp || (!userId && !email)) {
+    return res.json({ success: false, message: "Missing Details" });
   }
 
   try {
-    const user = await userModel.findById(userId);
+    const user = email
+      ? await userModel.findOne({ email: email.trim().toLowerCase() })
+      : await userModel.findById(userId);
 
     if (!user) {
       return res.json({
