@@ -11,6 +11,7 @@ import {
   productStatusChange,
   getActiveProducts,
 } from "../controller/productController.js";
+import { checkout, getOrderHistory } from "../controller/orderController.js";
 
 const protectedRoutes = express.Router();
 
@@ -40,5 +41,9 @@ protectedRoutes.post("/user/active-products", getActiveProducts);
 protectedRoutes.get("/product-details/:id", authenticate, getProductById);
 
 protectedRoutes.get("/user-details/:userId", authenticate, getUserDetails);
+
+// oder routes
+protectedRoutes.post("/checkout", authenticate, checkout);
+protectedRoutes.post("/order-history", authenticate, getOrderHistory); // oder history for admin & user
 
 export default protectedRoutes;
