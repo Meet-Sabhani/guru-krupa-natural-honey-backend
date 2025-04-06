@@ -11,7 +11,11 @@ import {
   productStatusChange,
   getActiveProducts,
 } from "../controller/productController.js";
-import { checkout, getOrderHistory } from "../controller/orderController.js";
+import {
+  checkout,
+  getOrderHistory,
+  verifyOrder,
+} from "../controller/orderController.js";
 
 const protectedRoutes = express.Router();
 
@@ -38,12 +42,15 @@ protectedRoutes.post(
 protectedRoutes.post("/user/active-products", getActiveProducts);
 
 // product details api
-protectedRoutes.get("/product-details/:id", authenticate, getProductById);
+protectedRoutes.get("/product-details/:id", getProductById);
 
 protectedRoutes.get("/user-details/:userId", authenticate, getUserDetails);
 
-// oder routes
+// oder payment routes
 protectedRoutes.post("/checkout", authenticate, checkout);
 protectedRoutes.post("/order-history", authenticate, getOrderHistory); // oder history for admin & user
+
+// protectedRoutes.post("/create-payment-instance", authenticate, createOrder); // create Razorpay  Instance
+protectedRoutes.post("/payment-verify", authenticate, verifyOrder); // verify
 
 export default protectedRoutes;

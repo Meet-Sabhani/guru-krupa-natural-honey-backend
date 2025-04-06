@@ -21,11 +21,12 @@ const orderSchema = new mongoose.Schema(
         description: { type: String },
       },
     ],
-    totalAmount: { type: Number, required: true },
-    grandTotal: { type: Number, required: true },
+    totalAmount: { type: Number, required: true }, // subtotal before taxes/discounts
+    grandTotal: { type: Number, required: true }, // final amount paid
+
     paymentStatus: {
       type: String,
-      enum: ["pending", "paid"],
+      enum: ["pending", "paid", "failed"],
       default: "pending",
     },
     deliveryStatus: {
@@ -33,12 +34,27 @@ const orderSchema = new mongoose.Schema(
       enum: ["pending", "shipped", "delivered"],
       default: "pending",
     },
+
     shippingAddress: {
       fullName: { type: String, required: true },
       phoneNumber: { type: String, required: true },
       address: { type: String, required: true },
       city: { type: String, required: true },
       postalCode: { type: String, required: true },
+    },
+
+    // 🔐 Razorpay payment details
+    razorpayOrderId: {
+      type: String,
+      required: false,
+    },
+    razorpayPaymentId: {
+      type: String,
+      required: false,
+    },
+    razorpaySignature: {
+      type: String,
+      required: false,
     },
   },
   { timestamps: true }
