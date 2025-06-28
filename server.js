@@ -4,6 +4,7 @@ import "dotenv/config";
 import connectDB from "./config/mongodb.js";
 import authRoutes from "./routes/authRoutes.js";
 import protectedRoutes from "./routes/protectedRoutes.js"; // Secure routes
+import cmsRoutes from "./routes/cmsRoutes.js";
 
 const app = express();
 const PORT = process.env.PORT || 4001;
@@ -34,6 +35,7 @@ const startServer = async () => {
     app.get("/", (req, res) => res.send("🔥 Server started successfully!"));
     app.use("/api/auth", authRoutes);
     app.use("/api/protected", protectedRoutes); // Secure API routes
+    app.use('/api', cmsRoutes);
 
     // Handle invalid API routes
     app.use((req, res) => {
